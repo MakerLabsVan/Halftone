@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>Halftone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="/stylesheets/bootstrap-theme.min.css">
+<link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+
+<div id="sourceImages"></div>
+<!--input type="Button" value="Circle Lines" id="cl"/>
+<input type="Button" value="Diagonal Lines" id="dl"/>
+<input type="Button" value="Vertical Lines" id="vl"/>
+<input type="Button" value="Horizonal Lines" id="hl"/>
+<input type="Button" value="Square Pixels" id="sp"/-->
+<input type="button" value="Round Pixels" id="rp"/>
+<input type="button" value="Round Offset Pixels" id="rop"/>
+
+<div id="renders">
+  <canvas id="srcCanvas" width="360" height="480"></canvas>
+</div>
+
+<script src="/javascripts/analytics.js"></script>
+<script src="/javascripts/jquery-3.1.0.min.js"></script>
+<script src="/javascripts/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<script src="/javascripts/images.js"></script>
+<script src="/javascripts/halftone.js"></script>
+<script src="/javascripts/raphael.min.js"></script>
+<script>
+
+window.onload = function() {
+  // SVG
+  paper = Raphael(0, 0, 360, 480);
+  reset();
+  $("svg").css({ position: "relative", top: 0, left: 0 });
+  $("#renders").append($("svg"));
+
+  // Image objects
+
+  c = $("#srcCanvas").get(0);
+  ctx = c.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  loadImage($("#archimedes").get(0));
+  analytics.diff("Page Loaded");
+};
+
+</script>
+</html>

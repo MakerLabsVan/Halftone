@@ -1,0 +1,15 @@
+body {
+  padding: 20px;
+}
+
+
+canvas {
+  background-color: #CCC;
+  display: inline;
+}
+
+svg {
+  display: inline;
+}
+
+#sourceImages img { height: 60px; cursor: pointer; }

@@ -1,0 +1,273 @@
+<html>
+<head>
+<title>Halftone</title>
+</head>
+<script src="/javascripts/raphael.min.js"></script>
+<img style="display: none" src="http://localhost:3000/images/p-jobs.png" id="tesla">
+<canvas id="srcCanvas">
+</canvas>
+<canvas id="pixelCanvas">
+</canvas>
+
+<div><input type="Button" value="Circle Lines" id="cl"/></div>
+<div><input type="Button" value="Diagonal Lines" id="dl"/></div>
+<div><input type="Button" value="Vertical Lines" id="vl"/></div>
+<div><input type="Button" value="Horizonal Lines" id="hl"/></div>
+<div><input type="Button" value="Square Pixels" id="sp"/></div>
+<div><input type="Button" value="Round Pixels" id="rp"/></div>
+<div><input type="Button" value="Round Offset Pixels" id="rop"/></div>
+
+<script>
+// SVG
+var paper = Raphael(0, 1000, 600, 800);
+paper.rect(0, 0, 600, 800).attr({ fill: "#000", "stroke-width": 0});
+
+// Sample object
+var sampleSize = { width: 4, height: 4 }; 
+sampleSize.numPixels = sampleSize.width * sampleSize.height * 3; // 3 is for R, G, and B
+
+// Image objects
+var img = document.getElementById("tesla");
+var ratio = img.width / img.height; 
+
+var c = document.getElementById("srcCanvas");
+var d = document.getElementById("pixelCanvas");
+
+var ctx = c.getContext("2d");
+var dtx = d.getContext("2d");
+
+ctx.imageSmoothingEnabled = false;
+dtx.imageSmoothingEnabled = false;
+
+var analytics = {
+  start: Date.now(),
+  last: Date.now(),
+  end: Date.now(),
+  diff: function(text) {
+    this.last = Date.now();
+    var timeElapsed = (this.last - this.start) / 1000; // in milliseconds
+    var timeDelta = (this.last - this.end) / 1000; // in milliseconds
+    this.end = this.last;
+    console.log(text + ": ", timeElapsed, timeDelta);
+  }
+};
+
+var loadImage = function() {
+  // draw image with the correct scaling
+  var height = 450;
+  var width= parseInt(height*ratio);
+  d.width = c.width = width;
+  d.height = c.height = height;
+  ctx.drawImage(img, 0, 0, width, height);
+};
+
+var reset = function() {
+  clearInterval(drawInterval);
+  drawIndex = 0;
+  points = [];
+  dtx.beginPath();
+  dtx.rect(0, 0, d.width, d.height);
+  dtx.fillStyle = "rgb(" + [0, 0, 0].join(',') + ")";
+  dtx.fill();
+};
+
+
+// calculate average pixel colour
+
+var drawSampledPixel = function(x, y) {
+
+  // does pixel fit on the image?
+  if (
+    x + sampleSize.width > c.width || 
+    y + sampleSize.height > c.height ||
+    x < 0 || y < 0) {
+    return;
+  };
+
+  // average out the colour
+  var myImageData = ctx.getImageData(x, y, sampleSize.width, sampleSize.height);
+  var data = myImageData.data;
+  var avg = 0;
+  for (var i = 0; i < data.length; i += 4) {
+    avg += data[i] + data[i + 1] + data[i + 2];
+  }; 
+  avg /= sampleSize.numPixels;
+//  avg = parseInt(avg) - 40;
+  avg = (avg < 0) ? 0: avg;
+  avg = 255 - avg;
+
+
+  // draw square pixel
+  //dtx.rect(x, y, sampleSize.width, sampleSize.height);
+
+  // draw round pixel
+  var radius = (sampleSize.width / 2) * ((255 - avg) / 255);
+  radius = radius < 0 ? 0 : radius;
+/*
+  dtx.beginPath();
+  dtx.arc(
+    x + sampleSize.width / 2, 
+    y + sampleSize.height / 2, 
+    //random
+    //x + sampleSize.width / 2 + (Math.random() * sampleSize.width - sampleSize.width / 2), 
+    //y + sampleSize.height / 2 + (Math.random() * sampleSize.height - sampleSize.height / 2), 
+    radius, 
+    0, 
+    Math.PI * 2,
+    0
+  );
+  //dtx.fillStyle = "rgb(" + [avg, avg, avg].join(',') + ")";
+  dtx.fillStyle = "rgb(" + [255, 255, 255].join(',') + ")";
+
+  dtx.fill(); 
+  dtx.closePath();  
+*/
+  if (radius > 0) {
+    paper.circle(x*2, y*2, radius * 1.5).attr({ fill: "#DDD", "stroke-width": 0 });
+  } 
+};
+
+var points = [];
+var pushPoints = function(x, y) {
+  if (x >= 0 && y >= 0 && x < c.width && y < c.height ) { 
+    points.push([x, y]);
+  }
+};
+
+var roundPixelsHalftone = function() {
+  reset();
+  for (var x = 0; x < c.width; x += sampleSize.width) {
+    for (var y = 0; y < c.height; y += sampleSize.height) {
+      pushPoints(x, y);
+    }
+  }
+};
+
+var roundOffsetPixelsHalftone = function() {
+  reset();
+  var yStep = parseInt(sampleSize.height / Math.sqrt(3));
+  var pixelRow = 0;
+  for (var x = 0; x < c.width; x += sampleSize.width) {
+    for (var y = 0; y < c.height; y += yStep) {
+      if (pixelRow % 2) {
+       // drawSampledPixel(ctx, dtx, x + parseInt(sampleSize.width / 2), y);
+      } else {
+        pushPoints(x, y);
+      }
+      pixelRow++;
+    }
+  }
+};
+
+var verticalLinesHalftone = function() {
+  reset();
+  for (var x = 0; x < c.width; x += sampleSize.width) {
+    for (var y = 0; y < c.height; y += 1) {
+      pushPoints(x, y);
+    }
+  }
+};
+
+var diagonalLineHalftone = function() {
+  reset();
+  var yStep = 1 || parseInt(sampleSize.height / Math.sqrt(3));
+  for (var x = 0; x < c.height; x += yStep) {
+    for (var y = -c.height; y < c.height; y += sampleSize.height * 2) {
+      pushPoints(x + y, x);
+    }
+  }
+};
+
+var horizontalLinesHalftone = function() {
+  reset();
+  for (var x = 0; x < c.width; x += 1) {
+    for (var y = 0; y < c.height; y += sampleSize.height) {
+      pushPoints(x, y);
+    }
+  }
+};
+
+var circularLineHalftone = function() {
+  reset();
+  var xCenter = 150;
+  var yCenter = 340;
+  var rStep = 10;
+  for (var r = 0; r < 550; r += rStep) {
+    var rad = 0;
+    for (var d = 0; d <= Math.PI * 2; d += Math.PI / r / 4) {
+      var x = xCenter + Math.sin(d) * r;
+      var y = yCenter + Math.cos(d) * r;
+      pushPoints(x, y);
+    }
+    if (rStep >= 6) {
+    //rStep *= 0.95;
+  };
+  }
+};
+
+
+var drawIndex = 0;
+var drawInterval;
+var draw = function() {
+  var nextDrawIndex = drawIndex + 200;
+  for (var i = drawIndex; i < nextDrawIndex; i++) {
+    if (points[i]) {
+      drawSampledPixel(points[i][0], points[i][1]);
+      drawIndex++;
+    }
+    if (drawIndex >= points.length - 1) {
+      clearInterval(drawInterval);
+      drawIndex = 0;
+    }
+  }
+  if (drawIndex % 2000 == 0) {
+    analytics.diff(drawIndex);
+  }
+};
+
+var run = function() {
+  clearInterval(drawInterval);
+  var FRAME_RATE = 20;
+  var intervalTime = 1000/FRAME_RATE;
+  drawInterval = setInterval(draw, intervalTime);
+};
+
+document.getElementById("cl").onclick = function() {
+  circularLineHalftone(); run();
+};
+document.getElementById("dl").onclick = function() {
+  diagonalLineHalftone(); run();
+};
+document.getElementById("rp").onclick = function() {
+  roundPixelsHalftone(); run();
+};
+document.getElementById("rop").onclick = function() {
+  roundOffsetPixelsHalftone(); run();
+};
+document.getElementById("vl").onclick = function() {
+  verticalLinesHalftone(); run();
+};
+document.getElementById("hl").onclick = function() {
+  horizontalLinesHalftone(); run();
+};
+
+window.onload = function() {
+// Image objects
+  img = document.getElementById("tesla");
+  ratio = img.width / img.height; 
+
+  c = document.getElementById("srcCanvas");
+  d = document.getElementById("pixelCanvas");
+
+  ctx = c.getContext("2d");
+  dtx = d.getContext("2d");
+
+  ctx.imageSmoothingEnabled = false;
+  dtx.imageSmoothingEnabled = false;
+
+  analytics.diff("Page Loaded");
+  loadImage();
+};
+
+</script>
+</html>
